@@ -22,6 +22,7 @@ namespace TwitchLib.Api
         private readonly TwitchLibJsonSerializer _jsonSerializer;
         private readonly IRateLimiter _rateLimiter;
         public IApiSettings Settings { get; }
+        public Analytics Analytics { get; }
         public Auth Auth { get; }
         public Blocks Blocks { get; }
         public Badges Badges { get; }
@@ -57,6 +58,7 @@ namespace TwitchLib.Api
             _logger = logger;
             _http = new HttpClient(new TwitchLibCustomHttpMessageHandler(new HttpClientHandler(), _logger));
             _rateLimiter = rateLimiter ?? BypassLimiter.CreateLimiterBypassInstance();
+            Analytics = new Analytics(this);
             Auth = new Auth(this);
             Blocks = new Blocks(this);
             Badges = new Badges(this);
@@ -409,8 +411,10 @@ namespace TwitchLib.Api
                     throw new GatewayTimeoutException("The API answered with a 504 Gateway Timeout. Please retry your request");
                 case HttpStatusCode.InternalServerError:
                     throw new InternalServerErrorException("The API answered with a 500 Internal Server Error. Please retry your request");
+                case HttpStatusCode.Forbidden:
+                    throw new ForbiddenResourceException("The API answered with 403 Forbidden. This results from a user trying to access a resource they are not allowed to.");
                 default:
-                    throw new HttpRequestException("Something went wrong during the request! Please try again later");
+                    throw new HttpRequestException($"Something went wrong during the request! Please try again later. Response Code: {errorResp.StatusCode}");
             }
         }
         #endregion
